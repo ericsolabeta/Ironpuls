@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IronPulse</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0d0f12; --panel:#14171c; --panel2:#1a1e25; --line:#262b34;
+  --text:#e8ecf1; --muted:#8a94a3; --neon:#00ff88; --cyan:#22d3ee; --danger:#ff4d6d;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;min-height:100vh}
+.display{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;letter-spacing:.01em}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.field{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:.65rem .8rem;color:var(--text);font-size:1rem}
+.field:focus{outline:2px solid var(--neon);outline-offset:1px;border-color:transparent}
+.lbl{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.3rem}
+.btn{background:var(--neon);color:#04130b;font-weight:600;border-radius:10px;padding:.7rem 1.1rem;transition:filter .15s,transform .05s}
+.btn:hover{filter:brightness(1.1)} .btn:active{transform:scale(.98)}
+.btn:focus-visible,.tab:focus-visible,.chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan);filter:none}
+.tab{padding:.6rem 1rem;border-radius:10px;color:var(--muted);white-space:nowrap;font-weight:500;border:1px solid transparent}
+.tab[aria-selected="true"]{color:var(--neon);background:rgba(0,255,136,.08);border-color:rgba(0,255,136,.35)}
+.chip{padding:.55rem 1rem;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--text)}
+.chip:hover{border-color:var(--cyan)}
+.num{color:var(--neon);font-variant-numeric:tabular-nums}
+.glow{text-shadow:0 0 18px rgba(0,255,136,.45)}
+.ring{transition:stroke-dashoffset .25s linear}
+.scroll-x{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:.6rem .5rem;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500;font-size:.85rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="max-w-4xl mx-auto px-4 py-5">
+
+  <header class="flex items-center justify-between mb-5">
+    <h1 class="display text-4xl font-extrabold glow" style="color:var(--neon)">IronPulse</h1>
+    <p class="text-sm" style="color:var(--muted)" id="today"></p>
+  </header>
+
+  <nav class="scroll-x flex gap-2 mb-5 pb-1" role="tablist" aria-label="Seções">
+    <button class="tab" role="tab" data-tab="perfil" aria-selected="false">Perfil</button>
+    <button class="tab" role="tab" data-tab="treino" aria-selected="true">Treino</button>
+    <button class="tab" role="tab" data-tab="rm" aria-selected="false">Calculadora de 1RM</button>
+    <button class="tab" role="tab" data-tab="timer" aria-selected="false">Timer de descanso</button>
+    <button class="tab" role="tab" data-tab="macros" aria-selected="false">Macros e água</button>
+  </nav>
+
+  <!-- PERFIL -->
+  <section id="perfil" data-panel hidden>
+    <form class="panel p-4" onsubmit="return false">
+      <h2 class="display text-2xl font-bold mb-1">Perfil do atleta</h2>
+      <p class="text-sm mb-3" style="color:var(--muted)">Os dados ficam salvos só neste navegador e alimentam a calculadora de macros e água.</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2"><label class="lbl" for="pN">Nome</label><input class="field" id="pN" autocomplete="name" placeholder="Seu nome"></div>
+        <div><label class="lbl" for="pA">Idade</label><input class="field" id="pA" type="number" min="10" inputmode="numeric" placeholder="28"></div>
+        <div><label class="lbl" for="pS">Sexo</label><select class="field" id="pS"><option value="m">Masculino</option><option value="f">Feminino</option></select></div>
+        <div><label class="lbl" for="pW">Peso (kg)</label><input class="field" id="pW" type="number" min="0" step="0.1" inputmode="decimal" placeholder="75"></div>
+        <div><label class="lbl" for="pH">Altura (cm)</label><input class="field" id="pH" type="number" min="0" inputmode="numeric" placeholder="175"></div>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <button class="btn" id="pSave">Salvar perfil</button>
+        <button class="btn btn-ghost" id="pReset">Sair e apagar perfil</button>
+      </div>
+      <p class="text-sm mt-3" id="pMsg" role="status"></p>
+    </form>
+  </section>
+
+  <!-- TREINO -->
+  <section id="treino" data-panel hidden>
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="panel p-4"><p class="lbl">Treinos salvos</p><p class="display text-3xl num" id="stCount">0</p></div>
+      <div class="panel p-4"><p class="lbl">Volume total</p><p class="display text-3xl num" id="stVol">0 kg</p></div>
+      <div class="panel p-4"><p class="lbl">Maior carga</p><p class="display text-3xl num" id="stMax">0 kg</p></div>
+    </div>
+
+    <div class="scroll-x flex gap-2 mb-3" id="days" role="tablist" aria-label="Dias de treino"></div>
+    <div class="mb-3"><h2 class="display text-2xl font-bold" id="dayTitle"></h2>
+      <p class="text-sm" style="color:var(--muted)">Registre carga e repetições de cada série e salve ao terminar.</p></div>
+    <div id="exs" class="space-y-3 mb-4"></div>
+    <div class="flex flex-wrap items-center gap-3 mb-5">
+      <button class="btn" id="saveDay">Salvar treino do dia</button>
+      <p class="text-sm" id="wMsg" role="status"></p>
+    </div>
+
+    <div class="panel p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="display text-2xl font-bold">Histórico</h2>
+        <button class="btn btn-ghost text-sm" id="wClear">Limpar tudo</button>
+      </div>
+      <ul id="wList" class="divide-y" style="border-color:var(--line)"></ul>
+    </div>
+  </section>
+
+  <!-- 1RM -->
+  <section id="rm" data-panel hidden>
+    <div class="panel p-4 mb-4">
+      <h2 class="display text-2xl font-bold mb-1">Calculadora de 1RM</h2>
+      <p class="text-sm mb-3" style="color:var(--muted)">Estimativa pela fórmula de Epley: carga × (1 + repetições ÷ 30).</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="lbl" for="rmKg">Carga levantada (kg)</label><input class="field" id="rmKg" type="number" min="0" step="0.5" inputmode="decimal" placeholder="100"></div>
+        <div><label class="lbl" for="rmReps">Repetições</label><input class="field" id="rmReps" type="number" min="1" max="30" inputmode="numeric" placeholder="5"></div>
+      </div>
+    </div>
+    <div class="panel p-4">
+      <p class="lbl">1RM estimado</p>
+      <p class="display text-5xl num glow mb-3" id="rmOut">— kg</p>
+      <table><thead><tr><th>Intensidade</th><th>Carga estimada</th><th>Reps aproximadas</th></tr></thead>
+        <tbody id="rmTable"></tbody></table>
+    </div>
+  </section>
+
+  <!-- TIMER -->
+  <section id="timer" data-panel hidden>
+    <div class="panel p-5 text-center">
+      <h2 class="display text-2xl font-bold mb-3 text-left">Descanso entre séries</h2>
+      <div class="relative mx-auto" style="width:min(70vw,260px)">
+        <svg viewBox="0 0 120 120" class="w-full" aria-hidden="true">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="var(--line)" stroke-width="7"/>
+          <circle id="ring" class="ring" cx="60" cy="60" r="54" fill="none" stroke="var(--neon)" stroke-width="7" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="339.29" stroke-dashoffset="0"/>
+        </svg>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <span class="display text-6xl font-bold num" id="tDisp" aria-live="off">01:00</span>
+        </div>
+      </div>
+      <p class="text-sm mt-2 h-5" id="tMsg" style="color:var(--cyan)" role="status"></p>
+      <div class="flex flex-wrap justify-center gap-2 my-4" id="presets">
+        <button class="chip" data-s="30">30s</button><button class="chip" data-s="60">60s</button>
+        <button class="chip" data-s="90">90s</button><button class="chip" data-s="120">120s</button>
+        <button class="chip" data-s="180">180s</button>
+      </div>
+      <div class="flex justify-center items-end gap-2 mb-4">
+        <div><label class="lbl text-left" for="tCustom">Tempo customizado (segundos)</label>
+          <input class="field" id="tCustom" type="number" min="5" max="3600" inputmode="numeric" placeholder="45" style="max-width:160px"></div>
+        <button class="btn btn-ghost" id="tSet">Definir</button>
+      </div>
+      <div class="flex justify-center gap-3">
+        <button class="btn" id="tStart">Iniciar</button>
+        <button class="btn btn-ghost" id="tReset">Zerar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- MACROS -->
+  <section id="macros" data-panel hidden>
+    <div class="panel p-4 mb-4">
+      <h2 class="display text-2xl font-bold mb-3">Macros e hidratação</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div><label class="lbl" for="mW">Peso (kg)</label><input class="field" id="mW" type="number" min="0" step="0.1" inputmode="decimal" placeholder="75"></div>
+        <div><label class="lbl" for="mH">Altura (cm)</label><input class="field" id="mH" type="number" min="0" inputmode="numeric" placeholder="175"></div>
+        <div><label class="lbl" for="mA">Idade</label><input class="field" id="mA" type="number" min="10" inputmode="numeric" placeholder="28"></div>
+        <div><label class="lbl" for="mS">Sexo</label><select class="field" id="mS"><option value="m">Masculino</option><option value="f">Feminino</option></select></div>
+        <div><label class="lbl" for="mAct">Atividade</label><select class="field" id="mAct">
+          <option value="1.375">Leve (1–3 treinos/sem.)</option><option value="1.55" selected>Moderada (3–5 treinos/sem.)</option><option value="1.725">Intensa (6–7 treinos/sem.)</option></select></div>
+        <div><label class="lbl" for="mG">Objetivo</label><select class="field" id="mG"><option value="bulk">Hipertrofia</option><option value="cut">Definição</option></select></div>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+      <div class="panel p-4"><p class="lbl">Água por dia</p><p class="display text-3xl num" id="oWater">—</p></div>
+      <div class="panel p-4"><p class="lbl">Calorias</p><p class="display text-3xl num" id="oKcal">—</p></div>
+      <div class="panel p-4"><p class="lbl">Proteína</p><p class="display text-3xl num" id="oPro">—</p></div>
+      <div class="panel p-4"><p class="lbl">Carbo / Gordura</p><p class="display text-3xl num" id="oCF">—</p></div>
+    </div>
+    <p class="text-sm" style="color:var(--muted)">Estimativas gerais (Mifflin-St Jeor): hipertrofia com superávit de 10% e definição com déficit de 20%. Água: 35 ml por kg. Proteína: 2,0 g/kg na hipertrofia e 2,2 g/kg na definição. Para um plano individual, consulte um nutricionista.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const fmt = n => (Math.round(n*10)/10).toLocaleString('pt-BR');
+  $('#today').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+
+  /* Tabs */
+  function openTab(id){
+    $$('[data-panel]').forEach(p => p.hidden = p.id !== id);
+    $$('[data-tab]').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === id));
+  }
+  $$('[data-tab]').forEach(t => t.addEventListener('click', () => openTab(t.dataset.tab)));
+
+  /* Dados e perfil (localStorage com fallback em memória) */
+  const PKEY = 'ironpulse.profile', SKEY = 'ironpulse.sessions';
+  function getJ(k, d){ try{ const r = localStorage.getItem(k); return r ? JSON.parse(r) : d; }catch(e){ return d; } }
+  function setJ(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let profile = getJ(PKEY, null);
+  let sessions = getJ(SKEY, []);
+
+  function applyProfile(){
+    const p = profile, dt = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+    $('#today').textContent = (p ? 'Olá, ' + p.nome + ' · ' : '') + dt;
+    $('#pN').value = p ? p.nome : ''; $('#pA').value = p ? p.idade : ''; $('#pS').value = p ? p.sexo : 'm';
+    $('#pW').value = p ? p.peso : ''; $('#pH').value = p ? p.altura : '';
+    $('#mW').value = p ? p.peso : ''; $('#mH').value = p ? p.altura : '';
+    $('#mA').value = p ? p.idade : ''; $('#mS').value = p ? p.sexo : 'm';
+    calcMacros();
+  }
+  $('#pSave').addEventListener('click', () => {
+    const nome = $('#pN').value.trim(), idade = parseInt($('#pA').value,10),
+          peso = parseFloat($('#pW').value), altura = parseFloat($('#pH').value), msg = $('#pMsg');
+    if(!nome || !(idade>0) || !(peso>0) || !(altura>0)){ msg.style.color = 'var(--danger)'; msg.textContent = 'Preencha nome, idade, peso e altura para salvar.'; return; }
+    profile = {nome, idade, sexo:$('#pS').value, peso, altura};
+    setJ(PKEY, profile); applyProfile();
+    msg.style.color = 'var(--neon)'; msg.textContent = 'Perfil salvo. Macros e água já foram calculados.';
+    openTab('treino');
+  });
+  $('#pReset').addEventListener('click', () => {
+    if(!confirm('Apagar o perfil salvo neste navegador? O histórico de treinos continua guardado.')) return;
+    profile = null; try{ localStorage.removeItem(PKEY); }catch(e){}
+    applyProfile(); $('#pMsg').textContent = '';
+  });
+
+  /* Divisão semanal: [nome, grupo, séries, reps, foco, passos, segurança] */
+  const SPLIT = {
+    A:{t:'Peito, ombro e tríceps', ex:[
+      ['Supino reto com barra','peito',4,'8–10','Peitoral maior, deltoide anterior e tríceps',['Deite com os olhos sob a barra, escápulas retraídas e pés firmes no chão.','Segure um pouco além da largura dos ombros e desça controlando até a linha do mamilo.','Empurre até estender os cotovelos, sem tirar o glúteo do banco.'],'Use o suporte de segurança ou um parceiro nas séries pesadas e não bata a barra no peito.'],
+      ['Supino inclinado com halteres','peito',3,'10–12','Parte superior do peitoral',['Ajuste o banco entre 30° e 45° e apoie bem as costas.','Desça até sentir o alongamento do peito, com cotovelos a cerca de 45° do tronco.','Suba aproximando os halteres sem encostá-los no topo.'],'Banco muito inclinado transfere o trabalho para o ombro; mantenha os pulsos alinhados com os antebraços.'],
+      ['Desenvolvimento com halteres','ombro',3,'10–12','Deltoides anterior e lateral',['Sentado, costas apoiadas e halteres na altura das orelhas.','Empurre para cima até quase estender os cotovelos.','Desça devagar até os antebraços ficarem na vertical.'],'Mantenha o abdômen firme para não arquear a lombar.'],
+      ['Elevação lateral','ombro',3,'12–15','Deltoide lateral',['Em pé, halteres ao lado do corpo e cotovelos levemente flexionados.','Eleve os braços até a altura dos ombros, liderando com os cotovelos.','Desça em 2 a 3 segundos, sem balançar o tronco.'],'Use carga que permita controle; impulso com o corpo tira o foco do ombro.'],
+      ['Tríceps na polia com corda','triceps',3,'12–15','Tríceps braquial',['Cotovelos colados ao tronco e tronco levemente inclinado.','Estenda os cotovelos e abra a corda no final do movimento.','Retorne devagar até os antebraços passarem de 90°.'],'Mantenha os ombros baixos e não deixe os cotovelos saírem do lugar.']]},
+    B:{t:'Costas e bíceps', ex:[
+      ['Puxada frontal','costas',4,'8–12','Latíssimo do dorso',['Ajuste o apoio das coxas e segure a barra um pouco além dos ombros.','Comece levando as escápulas para baixo e puxe a barra até a altura da clavícula.','Suba controlando até alongar as dorsais.'],'Evite puxar atrás da nuca e não jogue o tronco para trás para ganhar impulso.'],
+      ['Remada curvada','costas',4,'8–10','Dorsais, romboides e trapézio médio',['Quadril para trás, joelhos semiflexionados e tronco inclinado cerca de 45°.','Puxe a barra em direção ao umbigo, com os cotovelos próximos ao corpo.','Desça sem perder a posição da coluna.'],'Mantenha a lombar neutra; se ela arredondar, reduza a carga.'],
+      ['Rosca direta','biceps',3,'10–12','Bíceps braquial',['Em pé, pegada na largura dos ombros e cotovelos junto ao corpo.','Flexione os cotovelos até contrair o bíceps.','Desça em 2 a 3 segundos até estender quase por completo.'],'Sem balanço do tronco: se precisar balançar, a carga está alta.'],
+      ['Rosca martelo','biceps',3,'10–12','Braquial e braquiorradial',['Halteres com pegada neutra, palmas voltadas uma para a outra.','Suba sem girar o punho, alternando ou os dois juntos.','Desça controlando o movimento.'],'Mantenha os ombros para trás e os pulsos retos.']]},
+    C:{t:'Quadríceps', ex:[
+      ['Agachamento livre','quad',4,'6–10','Quadríceps, glúteos e core',['Barra apoiada no trapézio, pés na largura dos ombros e pontas levemente abertas.','Quadril e joelhos descem juntos, tronco firme, até a coxa ficar paralela ao chão ou abaixo.','Empurre o chão e suba com os joelhos alinhados aos pés.'],'Respire fundo e trave o abdômen antes de descer; use o suporte de segurança nas séries pesadas.'],
+      ['Leg press 45°','quad',4,'10–12','Quadríceps e glúteos',['Pés na largura dos ombros no meio da plataforma, lombar e quadril apoiados.','Desça até cerca de 90° de flexão de joelho.','Empurre sem estender totalmente os joelhos no topo.'],'Não deixe o quadril descolar do banco nem trave os joelhos.'],
+      ['Cadeira extensora','quad',3,'12–15','Quadríceps',['Ajuste o encosto para que o joelho fique alinhado ao eixo da máquina.','Estenda os joelhos até a contração máxima e segure 1 segundo.','Desça devagar, sem deixar o peso bater.'],'Evite cargas muito altas com impulso; priorize o controle.'],
+      ['Afundo búlgaro','quad',3,'10 por perna','Quadríceps e glúteos',['Pé de trás apoiado no banco e passo longo à frente.','Desça com o tronco levemente inclinado até a coxa da frente ficar paralela.','Empurre pelo calcanhar da perna da frente para subir.'],'Comece leve para achar o equilíbrio; o joelho segue a direção do segundo dedo do pé.']]},
+    D:{t:'Ombros e braços', ex:[
+      ['Desenvolvimento militar','ombro',4,'6–10','Deltoides e tríceps',['Em pé ou sentado, barra na altura da clavícula e abdômen contraído.','Empurre a barra para cima passando rente ao rosto.','Desça controlando até a clavícula.'],'Não hiperextenda a lombar para empurrar; use apoio se precisar.'],
+      ['Elevação lateral na polia','ombro',3,'12–15','Deltoide lateral',['Polia baixa, lado do corpo próximo à máquina e pegada solta.','Eleve o braço até a altura do ombro, com o cotovelo levemente flexionado.','Retorne devagar mantendo tensão no cabo.'],'Mantenha o tronco estável, sem se inclinar para o lado oposto.'],
+      ['Rosca scott','biceps',3,'10–12','Bíceps braquial (porção curta)',['Axilas apoiadas no banco e braços sobre o apoio.','Flexione até a contração sem levantar o ombro.','Desça até quase estender, sem soltar o peso.'],'Não estenda totalmente no fundo com carga alta, para proteger o tendão do bíceps.'],
+      ['Tríceps testa','triceps',3,'10–12','Tríceps braquial',['Deitado, barra EZ acima do peito e cotovelos apontando para o teto.','Flexione apenas os cotovelos até a barra chegar perto da testa.','Estenda sem abrir os cotovelos.'],'Use barra EZ e peça ajuda nas últimas repetições para proteger punhos e cotovelos.']]},
+    E:{t:'Posteriores e panturrilhas', ex:[
+      ['Stiff com barra','post',4,'8–10','Posteriores de coxa e glúteos',['Em pé, joelhos levemente flexionados e barra rente às pernas.','Leve o quadril para trás, com a coluna neutra, até sentir alongar atrás da coxa.','Suba contraindo os glúteos, sem hiperestender a lombar.'],'A barra desliza junto às pernas; pare a descida se a lombar arredondar.'],
+      ['Mesa flexora','post',4,'10–12','Isquiotibiais',['Deite com o joelho alinhado ao eixo da máquina e o quadril colado no banco.','Flexione os joelhos até a contração máxima.','Retorne em 2 a 3 segundos.'],'Não levante o quadril do apoio ao fazer força.'],
+      ['Panturrilha em pé','pant',4,'12–15','Gastrocnêmio',['Ombros sob o apoio e metatarso na plataforma.','Eleve os calcanhares ao máximo e segure 1 segundo.','Desça até alongar completamente.'],'Use amplitude total; quicar com impulso reduz o estímulo.'],
+      ['Panturrilha sentado','pant',3,'15–20','Sóleo',['Joelhos a 90° e apoio sobre as coxas.','Eleve os calcanhares com contração forte no topo.','Desça devagar até alongar.'],'Evite quicar no fundo do movimento, que sobrecarrega o tendão de Aquiles.']]}
+  };
+
+  /* Ilustração vetorial do músculo em foco (imagens externas não carregam nesta página) */
+  const HL = {peito:[[60,42,15,8]], ombro:[[43,33,7,6],[77,33,7,6]], triceps:[[38,52,5,12],[82,52,5,12]], biceps:[[38,52,5,12],[82,52,5,12]],
+    costas:[[60,52,15,17]], quad:[[51,102,6,16],[69,102,6,16]], post:[[51,102,6,16],[69,102,6,16]], pant:[[50,126,4,9],[70,126,4,9]]};
+  const BACK = {costas:1, post:1, triceps:1, pant:1};
+  function fig(g){
+    const hl = HL[g].map(e => `<ellipse cx="${e[0]}" cy="${e[1]}" rx="${e[2]}" ry="${e[3]}" fill="#00ff88" fill-opacity=".45" stroke="#00ff88"/>`).join('');
+    return `<svg viewBox="0 0 120 150" class="w-full" style="max-width:150px" role="img" aria-label="Músculo em foco"><g fill="none" stroke="#8a94a3" stroke-width="3" stroke-linecap="round"><circle cx="60" cy="16" r="10"/><path d="M45 30h30l-4 52H49z"/><path d="M45 32L32 72M75 32l13 40"/><path d="M52 82l-3 56M68 82l3 56"/></g>${hl}<text x="60" y="148" text-anchor="middle" font-size="8" fill="#8a94a3">${BACK[g] ? 'vista posterior' : 'vista frontal'}</text></svg>`;
+  }
+
+  /* Treino do dia, série a série */
+  let day = 'A', draft = {};
+  const mkDraft = d => SPLIT[d].ex.map(e => Array.from({length:e[2]}, () => ({kg:'', reps:''})));
+  function lastOf(name){
+    for(const s of sessions){ const x = s.ex.find(e => e.n === name); if(x) return x.sets.map(t => fmt(t.kg) + '×' + t.reps).join(' · '); }
+    return '';
+  }
+  function renderDays(){
+    $('#days').innerHTML = Object.keys(SPLIT).map(k =>
+      `<button class="tab" role="tab" data-d="${k}" aria-selected="${k === day}">Treino ${k}</button>`).join('');
+  }
+  function renderSets(i){
+    $('#sets' + i).innerHTML = draft[day][i].map((s, j) => `
+      <div class="flex items-center gap-2 mb-2">
+        <span class="w-16 text-sm shrink-0" style="color:var(--muted)">Série ${j+1}</span>
+        <input class="field" type="number" min="0" step="0.5" inputmode="decimal" placeholder="kg" aria-label="Carga da série ${j+1}" data-i="${i}" data-j="${j}" data-k="kg" value="${s.kg}">
+        <span>×</span>
+        <input class="field" type="number" min="1" inputmode="numeric" placeholder="reps" aria-label="Repetições da série ${j+1}" data-i="${i}" data-j="${j}" data-k="reps" value="${s.reps}">
+        <button class="btn btn-ghost text-sm" data-rm="${i}:${j}" aria-label="Remover série ${j+1}">✕</button>
+      </div>`).join('');
+  }
+  function renderEx(){
+    const d = SPLIT[day]; draft[day] = draft[day] || mkDraft(day);
+    $('#dayTitle').textContent = 'Treino ' + day + ' — ' + d.t;
+    $('#exs').innerHTML = d.ex.map((e, i) => {
+      const last = lastOf(e[0]);
+      return `<article class="panel p-4">
+        <h3 class="font-semibold text-lg">${e[0]}</h3>
+        <p class="text-sm mb-3" style="color:var(--muted)">${e[2]} séries · ${e[3]} reps${last ? ' · último treino: ' + last : ''}</p>
+        <div id="sets${i}"></div>
+        <div class="flex gap-2 mt-1">
+          <button class="btn btn-ghost text-sm" data-add="${i}">Adicionar série</button>
+          <button class="btn btn-ghost text-sm" data-rest="1">Descansar 90s</button>
+        </div>
+        <details class="mt-3"><summary class="cursor-pointer" style="color:var(--cyan)">Como executar</summary>
+          <div class="flex gap-4 mt-3 items-start">
+            <div class="shrink-0" style="width:110px">${fig(e[1])}</div>
+            <div class="text-sm space-y-2">
+              <p><b>Foco:</b> ${e[4]}</p>
+              <ol class="list-decimal pl-5 space-y-1">${e[5].map(x => `<li>${x}</li>`).join('')}</ol>
+              <p class="p-2 rounded-lg" style="background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.35)"><b>Segurança:</b> ${e[6]}</p>
+            </div>
+          </div>
+        </details>
+      </article>`;
+    }).join('');
+    d.ex.forEach((_, i) => renderSets(i));
+  }
+  $('#days').addEventListener('click', e => {
+    const b = e.target.closest('[data-d]'); if(!b) return;
+    day = b.dataset.d; $('#wMsg').textContent = ''; renderDays(); renderEx();
+  });
+  $('#exs').addEventListener('input', e => {
+    const t = e.target; if(t.dataset.k) draft[day][+t.dataset.i][+t.dataset.j][t.dataset.k] = t.value;
+  });
+  $('#exs').addEventListener('click', e => {
+    const a = e.target.closest('[data-add]'), r = e.target.closest('[data-rest]'), x = e.target.closest('[data-rm]');
+    if(a){ const i = +a.dataset.add; draft[day][i].push({kg:'', reps:''}); renderSets(i); }
+    if(r){ openTab('timer'); setTime(90); startBtn.click(); }
+    if(x){ const [i, j] = x.dataset.rm.split(':').map(Number); draft[day][i].splice(j, 1); renderSets(i); }
+  });
+  $('#saveDay').addEventListener('click', () => {
+    const d = SPLIT[day], msg = $('#wMsg');
+    const ex = d.ex.map((e, i) => ({n:e[0], sets:draft[day][i]
+      .filter(s => s.kg !== '' && parseFloat(s.kg) >= 0 && parseInt(s.reps,10) > 0)
+      .map(s => ({kg:parseFloat(s.kg), reps:parseInt(s.reps,10)}))})).filter(x => x.sets.length);
+    if(!ex.length){ msg.style.color = 'var(--danger)'; msg.textContent = 'Preencha carga e repetições de ao menos uma série.'; return; }
+    sessions.unshift({id:Date.now(), date:new Date().toISOString(), day, t:d.t, ex});
+    setJ(SKEY, sessions); draft[day] = null; renderEx(); renderHist();
+    msg.style.color = 'var(--neon)'; msg.textContent = 'Treino salvo no histórico.';
+  });
+
+  /* Histórico e estatísticas */
+  const vol = s => s.ex.reduce((a, e) => a + e.sets.reduce((b, t) => b + t.kg * t.reps, 0), 0);
+  function renderHist(){
+    $('#wList').innerHTML = sessions.length ? sessions.map(s => `
+      <li class="py-3">
+        <div class="flex items-start justify-between gap-3">
+          <div><p class="font-semibold">Treino ${s.day} · ${esc(s.t)}</p>
+            <p class="text-sm" style="color:var(--muted)">${new Date(s.date).toLocaleDateString('pt-BR')} · volume <span class="num">${fmt(vol(s))} kg</span></p></div>
+          <button class="btn btn-ghost text-sm" data-del="${s.id}" aria-label="Excluir treino ${s.day}">Excluir</button>
+        </div>
+        <ul class="text-sm mt-2 space-y-1">${s.ex.map(e => `<li><b>${esc(e.n)}</b>: ${e.sets.map(t => fmt(t.kg) + '×' + t.reps).join(' · ')}</li>`).join('')}</ul>
+      </li>`).join('') : '<li class="py-6 text-center" style="color:var(--muted)">Nenhum treino salvo. Registre as séries acima e toque em “Salvar treino do dia”.</li>';
+    $('#stCount').textContent = sessions.length;
+    $('#stVol').textContent = fmt(sessions.reduce((a, s) => a + vol(s), 0)) + ' kg';
+    $('#stMax').textContent = fmt(sessions.reduce((a, s) => s.ex.reduce((b, e) => e.sets.reduce((c, t) => Math.max(c, t.kg), b), a), 0)) + ' kg';
+  }
+  $('#wList').addEventListener('click', e => {
+    const b = e.target.closest('[data-del]'); if(!b) return;
+    sessions = sessions.filter(s => String(s.id) !== b.dataset.del);
+    setJ(SKEY, sessions); renderHist(); renderEx();
+  });
+  $('#wClear').addEventListener('click', () => {
+    if(sessions.length && confirm('Excluir todo o histórico de treinos?')){ sessions = []; setJ(SKEY, sessions); renderHist(); renderEx(); }
+  });
+  renderDays(); renderEx(); renderHist(); applyProfile();
+  openTab(profile ? 'treino' : 'perfil');
+
+  /* 1RM */
+  const zones = [[100,1],[90,4],[80,8],[70,12],[60,15]];
+  function calcRM(){
+    const kg = parseFloat($('#rmKg').value), reps = parseInt($('#rmReps').value,10);
+    if(!(kg>0) || !(reps>0)){
+      $('#rmOut').textContent = '— kg';
+      $('#rmTable').innerHTML = zones.map(z => `<tr><td>${z[0]}%</td><td>—</td><td>${z[1]}</td></tr>`).join('');
+      return;
+    }
+    const rm = reps === 1 ? kg : kg * (1 + reps/30);
+    $('#rmOut').textContent = fmt(rm) + ' kg';
+    $('#rmTable').innerHTML = zones.map(z =>
+      `<tr><td>${z[0]}%</td><td class="num font-semibold">${fmt(rm*z[0]/100)} kg</td><td>~${z[1]}</td></tr>`).join('');
+  }
+  ['#rmKg','#rmReps'].forEach(s => $(s).addEventListener('input', calcRM));
+  calcRM();
+
+  /* Timer */
+  const C = 2*Math.PI*54;
+  let total = 60, left = 60, tick = null, endAt = 0, audioCtx = null;
+  const disp = $('#tDisp'), ring = $('#ring'), tmsg = $('#tMsg'), startBtn = $('#tStart');
+  function paint(){
+    const s = Math.max(0, Math.ceil(left));
+    disp.textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    ring.style.strokeDashoffset = C * (1 - (total ? left/total : 0));
+  }
+  function setTime(s){ stop(); total = left = s; tmsg.textContent = ''; startBtn.textContent = 'Iniciar'; paint(); }
+  function stop(){ if(tick){ clearInterval(tick); tick = null; } }
+  function beep(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      [0,.35,.7].forEach(d => {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0001, audioCtx.currentTime + d);
+        g.gain.exponentialRampToValueAtTime(0.4, audioCtx.currentTime + d + .02);
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + d + .28);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(audioCtx.currentTime + d); o.stop(audioCtx.currentTime + d + .3);
+      });
+    }catch(e){}
+  }
+  startBtn.addEventListener('click', () => {
+    if(tick){ stop(); left = Math.max(0,(endAt - Date.now())/1000); startBtn.textContent = 'Continuar'; return; }
+    if(left <= 0) left = total;
+    try{ audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); }catch(e){}
+    tmsg.textContent = 'Descansando…'; startBtn.textContent = 'Pausar';
+    endAt = Date.now() + left*1000;
+    tick = setInterval(() => {
+      left = Math.max(0,(endAt - Date.now())/1000); paint();
+      if(left <= 0){ stop(); tmsg.textContent = 'Descanso concluído. Próxima série!'; startBtn.textContent = 'Reiniciar'; beep(); }
+    }, 100);
+  });
+  $('#tReset').addEventListener('click', () => setTime(total));
+  $('#presets').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if(b) setTime(parseInt(b.dataset.s,10)); });
+  $('#tSet').addEventListener('click', () => {
+    const v = parseInt($('#tCustom').value,10);
+    if(v >= 5 && v <= 3600) setTime(v); else tmsg.textContent = 'Informe um tempo entre 5 e 3600 segundos.';
+  });
+  paint();
+
+  /* Macros e água */
+  function calcMacros(){
+    const w = parseFloat($('#mW').value), h = parseFloat($('#mH').value), a = parseFloat($('#mA').value);
+    const ids = ['#oWater','#oKcal','#oPro','#oCF'];
+    if(!(w>0)){ ids.forEach(i => $(i).textContent = '—'); return; }
+    $('#oWater').textContent = fmt(w*35/1000) + ' L';
+    if(!(h>0) || !(a>0)){ ['#oKcal','#oPro','#oCF'].forEach(i => $(i).textContent = '—'); if(w>0){ const g=$('#mG').value; $('#oPro').textContent = Math.round(w*(g==='cut'?2.2:2)) + ' g'; } return; }
+    const bmr = 10*w + 6.25*h - 5*a + ($('#mS').value === 'm' ? 5 : -161);
+    const tdee = bmr * parseFloat($('#mAct').value);
+    const cut = $('#mG').value === 'cut';
+    const kcal = tdee * (cut ? 0.8 : 1.1);
+    const pro = w * (cut ? 2.2 : 2.0), fat = w * 0.9;
+    const carb = Math.max(0, (kcal - pro*4 - fat*9)/4);
+    $('#oKcal').textContent = Math.round(kcal).toLocaleString('pt-BR') + ' kcal';
+    $('#oPro').textContent = Math.round(pro) + ' g';
+    $('#oCF').textContent = Math.round(carb) + ' g / ' + Math.round(fat) + ' g';
+  }
+  ['#mW','#mH','#mA','#mS','#mAct','#mG'].forEach(s => { $(s).addEventListener('input', calcMacros); $(s).addEventListener('change', calcMacros); });
+})();
+</script>
+</body>
+</html>
